@@ -60,7 +60,7 @@ def parse_config_file(input_config):
     last_pos = f.tell()
     ## init parameters array
     n_params_per_venue = len(f.readline()[:-1].split(' '))
-    params = np.zeros([n_venues,n_params_per_venue)
+    params = np.zeros([n_venues,n_params_per_venue])
     f.seek(last_pos)
     ## Read the parameters    
     for k in range(n_venues):
