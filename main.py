@@ -14,7 +14,7 @@ import math
 
 def parseArguments():
     parser = argparse.ArgumentParser(description="Simulate a dark pool problem and run different ML algorithms on them")
-    
+
     parser.add_argument("-i",
         type=int, help="input config file")
 
@@ -52,23 +52,23 @@ def plot_regret(regret,method_label="method 1",title="Regret curve on a dark poo
 def parse_config_file(input_config):
 # this method returns the dark pool problem configuration parameters
     f = open(input_config,"r") # open in read mode
-    
-    ## Read method 
+
+    ## Read method
     method = f.readline()[:-1] #to remove the '\n'
     ## Read number of venues
     n_venues = int(f.readline()[:-1])
     last_pos = f.tell()
     ## init parameters array
     n_params_per_venue = len(f.readline()[:-1].split(' '))
-    params = np.zeros([n_venues,n_params_per_venue)
+    params = np.zeros([n_venues,n_params_per_venue])
     f.seek(last_pos)
-    ## Read the parameters    
+    ## Read the parameters
     for k in range(n_venues):
-        current_param = np.array(f.readline()[:-1].split(' '))        
+        current_param = np.array(f.readline()[:-1].split(' '))
         params[k,:] = current_param
 
     f.close()
-    
+
     return methods,n_venues,params
 
 ##################################################
@@ -91,11 +91,11 @@ def main():
     # create output path folders if not exist
     if not os.path.exists(output_path):
         os.makedirs(output_path)
-    
+
     # output path
     output_path_fig = os.path.join(output_path,'%s.eps'\
     %input_config.rsplit(".",1)[0])
-    
+
     # configure the simulator
     method,n_venues,params = parse_config_file(input_config)
     simulator = sim.simulator(method,n_venues,params)
@@ -106,10 +106,10 @@ def main():
     tac = time.clock()
 
     timing = tac - tic
-        
+
     # plot the results
     plot_regret(regret,method)
-    plt.savefig(output_path_fig, bbox_inches='tight')   
+    plt.savefig(output_path_fig, bbox_inches='tight')
     print "EPS figure saved at: " + output_path_fig
 
 if __name__ == '__main__':
