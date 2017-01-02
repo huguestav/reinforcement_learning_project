@@ -15,6 +15,8 @@ def uniform_allocation(simulator, T, n_runs):
             arr = np.arange(n_venues)
             np.random.shuffle(arr)
             alloc = p * np.ones(n_venues) + (arr < r)
+            # print "uniform:", alloc
+
 
             for i in range(n_venues):
                 # Simulate the venue and observe the reward
@@ -25,5 +27,44 @@ def uniform_allocation(simulator, T, n_runs):
     rewards = rewards / float(n_runs)
     rewards = np.sum(rewards, axis=1)
     return rewards
+
+
+def bandit_allocation(simulator, T, n_runs, alpha):
+    n_venues = simulator.n_venues
+    rewards = np.zeros((T, n_venues))
+
+    weights = 1. / n_venues * np.ones(n_venues)
+    for k in range(n_runs):
+        for t in range(T):
+            # Allocate according to the weights
+            alloc = np.floor(simulator.V_max * weights)
+
+            # Allocate the rest randomly
+            r = simulator.V_max - np.sum(alloc)
+            arr = np.arange(n_venues)
+            np.random.shuffle(arr)
+            alloc = alloc + (arr < r)
+
+            # print "bandit:", alloc
+
+            current_rewards = np.zeros(n_venues)
+            for i in range(n_venues):
+                # Simulate the venue and observe the reward
+                sample = simulator.venues[i].draw()
+                current_rewards[i] = min(sample, alloc[i])
+
+            rewards[t] += current_rewards
+
+            # Update the weights
+            weights += alpha * (current_rewards > 0)
+            weights = weights / np.sum(weights)
+
+    # Calculate the mean reward on the runs and sum the rewards of the venues
+    rewards = rewards / float(n_runs)
+    rewards = np.sum(rewards, axis=1)
+    return rewards
+
+
+
 
 
