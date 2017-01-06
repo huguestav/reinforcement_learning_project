@@ -54,17 +54,18 @@ def parse_config_file(input_config):
     f = open(input_config,"r") # open in read mode
 
     ## Read method
-    method = f.readline()[:-1] #to remove the '\n'
+    method = f.readline().rstrip() #to remove the '\n'
     ## Read number of venues
-    n_venues = int(f.readline()[:-1])
+    n_venues = int(f.readline().rstrip())
     last_pos = f.tell()
     ## init parameters array
-    n_params_per_venue = len(f.readline()[:-1].split(' '))
+    n_params_per_venue = len(f.readline().rstrip().split(' '))
     params = np.zeros([n_venues,n_params_per_venue])
     f.seek(last_pos)
     ## Read the parameters
     for k in range(n_venues):
-        current_param = np.array(f.readline()[:-1].split(' '))
+        current_param = np.array(f.readline().rstrip().split(' ')) # need to map to float ?
+        # current_param = np.array(map(float,f.readline().rstrip().split(' ')))
         params[k,:] = current_param
 
     f.close()
@@ -77,7 +78,7 @@ def parse_config_file(input_config):
 
 def main():
     args = parseArguments()
-    input_config = args.i
+    input_config = args.i # for one file
     output_path = args.o
     T = args.T
     n_mc = args.mc
@@ -94,7 +95,7 @@ def main():
 
     # output path
     output_path_fig = os.path.join(output_path,'%s.eps'\
-    %input_config.rsplit(".",1)[0])
+    %input_config.rstrip().rsplit(".",1)[0])
 
     # configure the simulator
     method,n_venues,params = parse_config_file(input_config)
