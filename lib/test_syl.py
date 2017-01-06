@@ -9,38 +9,18 @@ np.random.seed(7)
 
 sim = simulator.simulator("powerlaw", 2, 10, np.array([[0.9,0.3],[0.2,0.3]]))
 
-n_venues = sim.n_venues
 
-D = np.zeros((n_venues,sim.V_max+1))
-N = np.zeros((n_venues,sim.V_max+1))
-# first iteration with a uniform allocation
-# Do the euclidean division of V by n_venues
-p = sim.V_max / n_venues
-r = sim.V_max - p * n_venues
 
-# Allocate uniformly to the different venues
-arr = np.arange(n_venues)
-np.random.shuffle(arr)
-alloc = p * np.ones(n_venues) + (arr < r)
+#### test greedy allocation ####
+V = 8
+pools = np.zeros([4,9])
 
-print alloc
+pools[0,:] = 10*np.ones(9)
+pools[1,:] = np.array(range(8,-1,-1))
+pools[2,:] = np.array(range(8,-1,-1))
+pools[3,:] = np.array(range(8,-1,-1))
 
-rewards = ML.get_reward(alloc,sim,D,N)
-# print rewards
+print ML.greedyAllocation(pools,V)
+################################
 
-T = ML.compute_T(D,N) # reestimate the tail probabilities
-
-# print "D"
-# print D
-# print "N"
-# print N
-# print "T"
-# print T
-
-allocation = ML.greedyAllocation(T,sim.V_max) # do the allocation accordingly
-reward = ML.get_reward(allocation,sim,D,N)
-
-print allocation
-#V = simulator.V_max # nothing done on the maximum allocation for the moment
-#allocation = greedyAllocation(T,V) # do the allocation accordingly
-#reward = get_reward(allocation,simulator,D,N)
+print ML.KM(sim,1000,100).shape

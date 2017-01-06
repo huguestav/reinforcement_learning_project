@@ -2,7 +2,8 @@
 ##########################################
 
 import time
-from lib import ML
+from lib import KM
+from lib import allocation as alloc
 from lib import simulator as sim
 import sys
 import numpy as np
@@ -12,6 +13,8 @@ import argparse
 import math
 
 
+alloc_methods_names = ["uniform","bandit","KM","KM_optimistic"]
+
 def parseArguments():
     parser = argparse.ArgumentParser(description="Simulate a dark pool problem and run different ML algorithms on them")
 
@@ -19,12 +22,15 @@ def parseArguments():
         type=int, help="input config file")
 
     parser.add_argument("-o",
-        type=float, help="output path for plots")
+        type=float, help="output FOLDER path for plots")
+
+    parser.add_argument("-m",
+        type=int, nargs="*", help="(optional) Method indexes, default to 0 (uniform allocation)")
 
     parser.add_argument("-T",
         type=int, help='(optional) time horizon, defaults to 1000')
 
-    parser.add_arguement("-mc",
+    parser.add_argument("-mc",
         type=int, help='(optional) number of MC runs, for better regret estimation, defaults to 10')
 
     args = parser.parse_args()
@@ -36,11 +42,9 @@ def parseArguments():
 ###################### PLOTS #####################
 ##################################################
 
-def plot_regret(regret,method_label="method 1",title="Regret curve on a dark pool allocation problem"):
-    figure(num=None, figsize=(8, 6), dpi=80, facecolor='w', edgecolor='k')
+def plot_regret(regret,method_label="method 1"):
     plt.plot(regret,label=method_label)
     plt.grid()
-    plt.title(title)
     plt.xlabel('time')
     plt.ylabel('regret')
 
@@ -53,8 +57,8 @@ def parse_config_file(input_config):
 # this method returns the dark pool problem configuration parameters
     f = open(input_config,"r") # open in read mode
 
-    ## Read method
-    method = f.readline().rstrip() #to remove the '\n'
+    ## Read model_name
+    model_name = f.readline().rstrip() #to remove the '\n'
     ## Read number of venues
     n_venues = int(f.readline().rstrip())
     last_pos = f.tell()
@@ -64,13 +68,13 @@ def parse_config_file(input_config):
     f.seek(last_pos)
     ## Read the parameters
     for k in range(n_venues):
-        current_param = np.array(f.readline().rstrip().split(' ')) # need to map to float ?
-        # current_param = np.array(map(float,f.readline().rstrip().split(' ')))
+        #current_param = np.array(f.readline().rstrip().split(' ')) # need to map to float ?
+        current_param = np.array(map(float,f.readline().rstrip().split(' ')))
         params[k,:] = current_param
 
     f.close()
 
-    return methods,n_venues,params
+    return model_name,n_venues,params
 
 ##################################################
 ###################### MAIN ######################
@@ -82,12 +86,15 @@ def main():
     output_path = args.o
     T = args.T
     n_mc = args.mc
+    methods =args.m
 
     # set default values
     if T is None:
         T = 1000
     if n_mc is None:
         n_mc = 10
+    if methods is None:
+        methods = 0
 
     # create output path folders if not exist
     if not os.path.exists(output_path):
@@ -98,18 +105,32 @@ def main():
     %input_config.rstrip().rsplit(".",1)[0])
 
     # configure the simulator
-    method,n_venues,params = parse_config_file(input_config)
-    simulator = sim.simulator(method,n_venues,params)
+    model_name,n_venues,params = parse_config_file(input_config)
+    simulator = sim.simulator(model_name,n_venues,params)
 
-    # run the simuation
-    tic = time.clock()
-    regret = ML.run_simu(simulator, T, n_mc)
-    tac = time.clock()
+    # run the simuation for each method
+    figure(num=None, figsize=(8, 6), dpi=80, facecolor='w', edgecolor='k')
+    for m in methods:
+        regret = []
 
-    timing = tac - tic
+        tic = time.clock()
+        if m==0:
+            regret = alloc.uniform_allocation(simulator,T,n_mc)
+            break
+        if m==1:
+            regret = alloc.bandit_allocation(simulator,T,n_mc,0.05)
+            break
+        if m==2:
+            regret = KM.KM(simulator,T,n_mc)
+            break
+        if m==3:
+            regret = KM.KM_optimistic(simulator,T,n_mc)
+        tac = time.clock()
+        timing = tac - tic
 
-    # plot the results
-    plot_regret(regret,method)
+        # plot the results
+        plot_regret(regret,alloc_methods_names[m])
+
     plt.savefig(output_path_fig, bbox_inches='tight')
     print "EPS figure saved at: " + output_path_fig
 

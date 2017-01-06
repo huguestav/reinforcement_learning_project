@@ -17,7 +17,6 @@ def uniform_allocation(simulator, T, n_runs):
             alloc = p * np.ones(n_venues) + (arr < r)
             # print "uniform:", alloc
 
-
             for i in range(n_venues):
                 # Simulate the venue and observe the reward
                 sample = simulator.venues[i].draw()
