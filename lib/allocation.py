@@ -1,4 +1,5 @@
 import numpy as np
+from ML import greedyAllocation
 
 
 def uniform_allocation(simulator, T, n_runs):
@@ -52,6 +53,8 @@ def bandit_allocation(simulator, T, n_runs, alpha):
                 # Simulate the venue and observe the reward
                 sample = simulator.venues[i].draw()
                 current_rewards[i] = min(sample, alloc[i])
+            # print "current_rewards:", current_rewards
+            # print ""
 
             rewards[t] += current_rewards
 
@@ -65,6 +68,33 @@ def bandit_allocation(simulator, T, n_runs, alpha):
     return rewards
 
 
+def optimal_allocation(simulator, T, n_runs):
+    V_max = simulator.V_max
+    n_venues = simulator.n_venues
+    tail_probas = np.empty((n_venues, V_max+1))
+    for k in range(n_venues):
+        tail_probas[k,:] = simulator.venues[k].tail_distrib()
 
+    rewards = np.zeros((T, n_venues))
+    for k in range(n_runs):
+        for t in range(T):
+            # Allocate according to the tail proba
+            alloc = greedyAllocation(tail_probas, V_max)
+            # print "alloc greedy:", alloc
+
+            current_rewards = np.zeros(n_venues)
+            for i in range(n_venues):
+                # Simulate the venue and observe the reward
+                sample = simulator.venues[i].draw()
+                current_rewards[i] = min(sample, alloc[i])
+
+            # print "current_rewards:", current_rewards
+            # print ""
+            rewards[t] += current_rewards
+
+    # Calculate the mean reward on the runs and sum the rewards of the venues
+    rewards = rewards / float(n_runs)
+    rewards = np.sum(rewards, axis=1)
+    return rewards
 
 
