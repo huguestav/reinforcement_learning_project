@@ -2,6 +2,8 @@ import simulator
 import numpy as np
 from allocation import *
 from matplotlib import pyplot as plt
+import KM
+
 
 V = 20
 venues_params = np.array([[0.7,0.3],[0.2,0.7], [0.5,0.3]])
@@ -42,4 +44,10 @@ plt.plot(regret_1)
 plt.plot(regret_2)
 plt.show()
 
+#plt.plot(a)
+#plt.plot(b)
+plt.plot(c)
+plt.plot(d)
+
+plt.show()
 
