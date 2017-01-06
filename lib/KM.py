@@ -114,7 +114,7 @@ def KM(simulator,T,mc):
 
         tail = compute_T(D,N)
 
-    return rewards/mc, tail
+    return rewards/mc
 
 
 ###################################################
