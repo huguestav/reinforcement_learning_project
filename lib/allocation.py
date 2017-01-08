@@ -1,5 +1,5 @@
 import numpy as np
-from ML import greedyAllocation
+from KM import greedyAllocation
 
 
 def uniform_allocation(simulator, T, n_runs):

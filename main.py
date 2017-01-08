@@ -132,6 +132,10 @@ def main():
         plt.figure(num=None, figsize=(10, 8), dpi=80, facecolor='w', edgecolor='k')
         plt.title("model: %s, n_venues: %d, V_max: %d" % (model_name,n_venues,V))
 
+        # run the optimal allocation
+        print "\rOptimal allocation...    "
+        optimal_reward = alloc.optimal_allocation(simulator,T,n_mc)
+
         for m in methods:
             regret = []
 
@@ -139,19 +143,19 @@ def main():
             if m==0:
                 print "\runiform_allocation...    ",
                 sys.stdout.flush()
-                regret = alloc.uniform_allocation(simulator,T,n_mc)
+                regret = optimal_reward - alloc.uniform_allocation(simulator,T,n_mc)
             if m==1:
                 print "\rbandit_allocation...    ",
                 sys.stdout.flush()
-                regret = alloc.bandit_allocation(simulator,T,n_mc,0.05)
+                regret = optimal_reward - alloc.bandit_allocation(simulator,T,n_mc,0.05)
             if m==2:
                 print "\rKM_allocation...    ",
                 sys.stdout.flush()
-                regret = KM.KM(simulator,T,n_mc)
+                regret = optimal_reward - KM.KM(simulator,T,n_mc)
             if m==3:
                 print "\rKM_optimistic...    ",
                 sys.stdout.flush()
-                regret = KM.KM_optimistic(simulator,T,n_mc)
+                regret = optimal_reward - KM.KM_optimistic(simulator,T,n_mc)
             tac = time.clock()
             timing = tac - tic
 
