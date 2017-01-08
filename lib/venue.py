@@ -27,6 +27,18 @@ class venue():
         self.V_max = V_max
 
 
+    def mean_value(self):
+        parameters = self.parameters
+        if self.distrib == "powerlaw":
+            zb = parameters[0]
+            beta = parameters[1]
+
+            non_null_proba = 1. / np.power(np.arange(self.V_max)+1, beta)
+            non_null_proba = (1-zb) * non_null_proba / np.sum(non_null_proba)
+
+            return non_null_proba.T.dot(np.arange(self.V_max)+1)
+
+
     def draw(self):
         parameters = self.parameters
 

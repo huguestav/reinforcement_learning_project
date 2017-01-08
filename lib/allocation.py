@@ -33,8 +33,8 @@ def bandit_allocation(simulator, T, n_runs, alpha):
     n_venues = simulator.n_venues
     rewards = np.zeros((T, n_venues))
 
-    weights = 1. / n_venues * np.ones(n_venues)
     for k in range(n_runs):
+        weights = 1. / n_venues * np.ones(n_venues)
         for t in range(T):
             # Allocate according to the weights
             alloc = np.floor(simulator.V_max * weights)
@@ -95,5 +95,4 @@ def optimal_allocation(simulator, T, n_runs):
     rewards = rewards / float(n_runs)
     rewards = np.sum(rewards, axis=1)
     return rewards
-
 
