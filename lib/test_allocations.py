@@ -1,7 +1,7 @@
 import simulator
 import numpy as np
 from allocation import *
-from exp3 import exp3_allocation, exp3_allocation_change
+from exp3 import exp3_allocation, exp3_allocation_change, exp3_allocation_swap
 from matplotlib import pyplot as plt
 import KM
 
@@ -29,21 +29,29 @@ s1.venues[1].mean_value()
 
 
 
-T = 10000
+T = 2500
 
 
-eta = (V * np.log(n_venues)**2 / n_venues * T**(-2))**(1./3)
-print "eta:", eta
-# eta = 0.01
-gamma = 0.01
+# eta = (V * np.log(n_venues)**2 / n_venues * T**(-2))**(1./3)
+# print "eta:", eta
+# # eta = 0.01
+# gamma = 0.01
 
-rewards, allocations = exp3_allocation_change(s1, s2, T, eta, gamma)
+# rewards, allocations = exp3_allocation_change(s1, s2, T, eta, gamma)
 
 
+# rewards, alloc = KM.KM_change(s1, s2, T)
+
+_,allocations = KM.KM_optimistic_swap(s1,2*T)
+_, allocations_exp3 = exp3_allocation_swap(s1,2*T)
 
 plt.plot(allocations[0,:])
 plt.plot(allocations[1,:])
-# plt.plot(100 * np.ones(2*T))
+
+plt.plot(allocations_exp3[0,:])
+plt.plot(allocations_exp3[1,:])
+
+#plt.plot(100 * np.ones(2*T))
 plt.show()
 
 

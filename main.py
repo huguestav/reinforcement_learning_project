@@ -153,8 +153,8 @@ def main():
         # run the optimal allocation
         print "\rOptimal allocation...    "
         sys.stdout.flush()
-        #optimal_reward = alloc.optimal_allocation(simulator,T,n_mc)
-        optimal_reward = np.zeros(T)
+        optimal_reward = alloc.optimal_allocation(simulator,T,n_mc)
+        #optimal_reward = np.zeros(T)
         print "Done"
 
         for m in methods:
@@ -173,7 +173,7 @@ def main():
                 print "\rbandit_allocation... "
                 sys.stdout.flush()
                 regret = optimal_reward - alloc.bandit_allocation(simulator,T,n_mc)
-                _, allocation = alloc.bandit_allocation_swap(simulator, T)
+                #_, allocation = alloc.bandit_allocation_swap(simulator, T)
             if m==2:
                 print "\rKM_allocation...     "
                 sys.stdout.flush()
@@ -207,6 +207,7 @@ def main():
         plt.figure(1)
         plt.savefig(output_path_fig, bbox_inches='tight')
         print "EPS figure saved at: " + output_path_fig
+        plt.clf()
 
         output_path_fig = os.path.join(\
             output_path,\
@@ -217,6 +218,7 @@ def main():
         plt.figure(2)
         plt.savefig(output_path_fig, bbox_inches='tight')
         print "EPS figure saved at: " + output_path_fig
+        plt.clf()
 
 if __name__ == '__main__':
     main()

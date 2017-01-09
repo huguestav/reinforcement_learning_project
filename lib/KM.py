@@ -123,7 +123,7 @@ def KM(simulator,T,mc):
     return rewards/mc
 
 def KM_swap(simulator,T, mc=1, n_swaps=5):
-    TT = np.floor(np.linspace(0,T,n_swaps)).astype(int)
+    TT = np.floor(np.linspace(1,T,n_swaps)).astype(int)
     n_venues = len(simulator.venues)
 
     rewards = np.zeros(T)
@@ -148,17 +148,23 @@ def KM_swap(simulator,T, mc=1, n_swaps=5):
         allocations[:,0] += alloc
 
         for interval in range(len(TT)-1):
+            # print TT[interval]
+            # print TT[interval+1]
             for t in range(TT[interval],TT[interval+1]):
                 #print "\r(%d/%d) MC runs | (%d/%d) time step" % (k+1,n_runs,t,T),
                 #sys.stdout.flush()
                 reward, alloc = KM_iter(D,N,simulator)
                 rewards[t] += reward
-                allocations[:,t] = alloc
+                allocations[:,t] += alloc
+                #print alloc
 
+            # print [v.mean_value() for v in simulator.venues]
             simulator.random_swap_venues()
+            # print [v.mean_value() for v in simulator.venues]
 
     #print ''
     return rewards/float(mc), allocations / float(mc)
+
 
 
 ###################################################
@@ -266,6 +272,7 @@ def KM_optimistic_swap(simulator,T, mc=1, n_swaps=5):
                 reward, alloc = KM_iter_optimistic(D,N,simulator,epsilon,delta)
                 rewards[t] += reward
                 allocations[:,t] += alloc
+                #print alloc
             simulator.random_swap_venues()
     #print ''
     return rewards/float(mc), allocations / float(mc)
