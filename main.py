@@ -3,6 +3,7 @@
 
 import time
 from lib import KM
+from lib import exp3
 from lib import allocation as alloc
 from lib import simulator as sim
 import sys
@@ -13,19 +14,20 @@ import argparse
 import math
 
 
-alloc_methods_names = ["uniform","bandit","KM","KM_optimistic"]
+alloc_methods_names = ["uniform","bandit","KM","KM_optimistic","EXP3"]
+color_array = ['b','g','r','c','m','k']
 
 def parseArguments():
     parser = argparse.ArgumentParser(description="Simulate a dark pool problem and run different ML algorithms on them")
 
     parser.add_argument("-i",
-        type=str, help="input config file")
+        type=str, help="one input config file")
 
     parser.add_argument("-o",
         type=str, help="output FOLDER path for plots")
 
     parser.add_argument("-m",
-        type=int, nargs="*", help="(optional) Method indexes, default to 0 (uniform allocation)")
+        type=int, nargs="*", help="(optional) Method indexes, default to 0 (uniform allocation) {O: uniform, 1: bandit, 2: KM, 3: KM_optimistic, 4: EXP3}")
 
     parser.add_argument("-T",
         type=int, help='(optional) time horizon, defaults to 1000')
@@ -42,11 +44,24 @@ def parseArguments():
 ###################### PLOTS #####################
 ##################################################
 
+def plot_allocation(allocation,color='k',method_label='method 1'):
+    plt.figure(2)
+    plt.plot(allocation[0,:],label=method_label,color=color)
+    plt.plot(allocation[1,:],color=color)
+
+    plt.xlabel('time')
+    plt.ylabel('allocation per venue')
+    plt.legend(loc=2)
+    plt.grid()
+
 def plot_regret(regret,method_label="method 1"):
+
+    plt.figure(1)
     plt.plot(regret,label=method_label)
     plt.xlabel('time')
     plt.ylabel('regret')
-
+    plt.legend(loc=2)
+    plt.grid()
 
 ##################################################
 ################# PARSE CONFIGURATIONS ###########
@@ -127,50 +142,79 @@ def main():
         params = params_array[k]
         # configure the simulator
         simulator = sim.simulator(model_name,n_venues,V,params)
-
         # run the simuation for each method
-        plt.figure(num=None, figsize=(10, 8), dpi=80, facecolor='w', edgecolor='k')
+
+        plt.figure(num=1, figsize=(10, 8), dpi=80, facecolor='w', edgecolor='k')
         plt.title("model: %s, n_venues: %d, V_max: %d" % (model_name,n_venues,V))
+
+        plt.figure(num=2, figsize=(10, 8), dpi=80, facecolor='w', edgecolor='k')
+        plt.title("model: %s, n_venues: %d, V_max: %d (venue swapping analysis)" % (model_name,n_venues,V))
 
         # run the optimal allocation
         print "\rOptimal allocation...    "
-        optimal_reward = alloc.optimal_allocation(simulator,T,n_mc)
+        sys.stdout.flush()
+        #optimal_reward = alloc.optimal_allocation(simulator,T,n_mc)
+        optimal_reward = np.zeros(T)
+        print "Done"
 
         for m in methods:
+            # configure the simulator
+            simulator = sim.simulator(model_name,n_venues,V,params)
+
             regret = []
+            allocation = []
 
             tic = time.clock()
             if m==0:
-                print "\runiform_allocation...    ",
+                print "\runiform_allocation..."
                 sys.stdout.flush()
                 regret = optimal_reward - alloc.uniform_allocation(simulator,T,n_mc)
             if m==1:
-                print "\rbandit_allocation...    ",
+                print "\rbandit_allocation... "
                 sys.stdout.flush()
-                regret = optimal_reward - alloc.bandit_allocation(simulator,T,n_mc,0.05)
+                regret = optimal_reward - alloc.bandit_allocation(simulator,T,n_mc)
+                _, allocation = alloc.bandit_allocation_swap(simulator, T)
             if m==2:
-                print "\rKM_allocation...    ",
+                print "\rKM_allocation...     "
                 sys.stdout.flush()
                 regret = optimal_reward - KM.KM(simulator,T,n_mc)
+                _, allocation = KM.KM_swap(simulator, T)
             if m==3:
-                print "\rKM_optimistic...    ",
+                print "\rKM_optimistic...     "
                 sys.stdout.flush()
                 regret = optimal_reward - KM.KM_optimistic(simulator,T,n_mc)
+                _, allocation = KM.KM_optimistic_swap(simulator, T)
+            if m==4:
+                print "\rEXP3...              "
+                sys.stdout.flush()
+                regret = optimal_reward - exp3.exp3_allocation(simulator, T, n_mc)
+                _, allocation = exp3.exp3_allocation_swap(simulator, T)
             tac = time.clock()
             timing = tac - tic
 
             # plot the results
+            if (len(allocation)>0):
+                plot_allocation(allocation,color_array[m],alloc_methods_names[m])
             plot_regret(np.cumsum(regret),alloc_methods_names[m])
 
         # output path
         print "\rall allocations computed!"
         output_path_fig = os.path.join(\
             output_path,\
-            '%s_%dvenues_%dV(%d).eps'\
-            %(model_name,n_venues,V,k))
+            'pool_model_%s.%d_%dvenues_%dV.eps'\
+            %(model_name,k,n_venues,V))
 
-        plt.grid()
-        plt.legend(loc=2)
+        plt.figure(1)
+        plt.savefig(output_path_fig, bbox_inches='tight')
+        print "EPS figure saved at: " + output_path_fig
+
+        output_path_fig = os.path.join(\
+            output_path,\
+            'swap_pool_model_%s.%d_%dvenues_%dV.eps'\
+            %(model_name,k,n_venues,V))
+
+
+        plt.figure(2)
         plt.savefig(output_path_fig, bbox_inches='tight')
         print "EPS figure saved at: " + output_path_fig
 

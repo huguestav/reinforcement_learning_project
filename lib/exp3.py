@@ -2,6 +2,7 @@ import numpy as np
 import numpy.matlib
 import scipy.optimize.nnls as nnls
 import itertools
+import sys
 
 
 def draw_finite(p):
@@ -138,6 +139,8 @@ def exp3_allocation(simulator, T, mc, gamma=0.01):
 
     rewards = np.zeros(T)
     for k in range(mc):
+        print "\r(%d/%d) MC runs" % (k+1,mc),
+        sys.stdout.flush()
         # Initialize
         x = 1. / n_venues * np.ones((n_venues, V_max))
 
@@ -145,10 +148,55 @@ def exp3_allocation(simulator, T, mc, gamma=0.01):
             x, alloc, reward = one_exp3_iteration(simulator, gamma, eta, x)
             rewards[t] += reward
 
+    print ''
     # Calculate the mean reward on the runs and sum the rewards of the venues
     rewards = rewards / float(mc)
     return rewards
 
+def exp3_allocation_swap(simulator,T, mc=1, n_swaps=5, gamma=0.01):
+    """
+    eta is the larning rate
+    gamma is the threshold
+    """
+    TT = np.floor(np.linspace(0,T,n_swaps)).astype(int)
+
+    V_max = simulator.V_max
+    n_venues = simulator.n_venues
+    venues = simulator.venues
+    eta = (V_max * np.log(n_venues)**2 / n_venues * T**(-2))**(1./3)
+
+    rewards = np.zeros(T)
+    allocations = np.zeros((n_venues, T))
+
+    for k in range(mc):
+        # Initialize
+        x = 1. / n_venues * np.ones((n_venues, V_max))
+
+
+        for interval in range(len(TT)-1):
+            for t in range(TT[interval],TT[interval+1]):
+                x, alloc, reward = one_exp3_iteration(simulator, gamma, eta, x)
+                rewards[t] += reward
+                allocations[:,t] += alloc
+            simulator.random_swap_venues()
+
+        # for t in range(T):
+        #     x, alloc, reward = one_exp3_iteration(simulator, gamma, eta, x)
+        #     rewards[t] += reward
+        #     allocations[:,t] += alloc
+
+        # simulator.random_swap_venues()
+        # # swap venues in the simulator
+        # for t in range(T,2*T):
+        #     x, alloc, reward = one_exp3_iteration(simulator, gamma, eta, x)
+        #     rewards[t] += reward
+        #     allocations[:,t] += alloc
+
+    # Calculate the mean reward on the runs and sum the rewards of the venues
+    allocations = allocations / float(mc)
+    rewards = rewards / float(mc)
+
+    return rewards, allocations
 
 def exp3_allocation_change(simulator1, simulator2, T, eta, gamma):
     """

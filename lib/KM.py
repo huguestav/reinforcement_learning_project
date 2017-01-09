@@ -1,6 +1,7 @@
 ### this python file regroups the machine learning algorithms for the dark pool problem
 import numpy as np
 import math
+import sys
 
 ######################################
 ############# GENERAL ################
@@ -85,12 +86,48 @@ def KM_iter(D,N,simulator):
     V = simulator.V_max # nothing done on the maximum allocation for the moment
     allocation = greedyAllocation(T,V) # do the allocation accordingly
     reward = get_reward(allocation,simulator,D,N)
-    return reward
+    return reward, allocation
 
 def KM(simulator,T,mc):
     n_venues = len(simulator.venues)
 
     rewards = np.zeros(T)
+
+    for m in range(mc):
+        print "\r(%d/%d) MC runs" % (m+1,mc),
+        sys.stdout.flush()
+        D = np.zeros([n_venues,simulator.V_max+1])
+        N = np.zeros([n_venues,simulator.V_max+1])
+
+        # first iteration with a uniform allocation
+        # Do the euclidean division of V by n_venues
+        p = simulator.V_max / n_venues
+        r = simulator.V_max - p * n_venues
+
+        # Allocate uniformly to the different venues
+        arr = np.arange(n_venues)
+        np.random.shuffle(arr)
+        alloc = p * np.ones(n_venues) + (arr < r)
+
+        rewards[0] += get_reward(alloc,simulator,D,N)
+
+        for t in range(1,T):
+            # print "\r(%d/%d) MC runs | (%d/%d) time step" % (m+1,mc,t,T),
+            # sys.stdout.flush()
+            reward,_= KM_iter(D,N,simulator)
+            rewards[t] += reward
+
+        tail = compute_T(D,N)
+
+    print ''
+    return rewards/mc
+
+def KM_swap(simulator,T, mc=1, n_swaps=5):
+    TT = np.floor(np.linspace(0,T,n_swaps)).astype(int)
+    n_venues = len(simulator.venues)
+
+    rewards = np.zeros(T)
+    allocations = np.zeros((n_venues,T))
 
     for m in range(mc):
 
@@ -108,13 +145,20 @@ def KM(simulator,T,mc):
         alloc = p * np.ones(n_venues) + (arr < r)
 
         rewards[0] += get_reward(alloc,simulator,D,N)
+        allocations[:,0] += alloc
 
-        for t in range(1,T):
-            rewards[t] += KM_iter(D,N,simulator)
+        for interval in range(len(TT)-1):
+            for t in range(TT[interval],TT[interval+1]):
+                #print "\r(%d/%d) MC runs | (%d/%d) time step" % (k+1,n_runs,t,T),
+                #sys.stdout.flush()
+                reward, alloc = KM_iter(D,N,simulator)
+                rewards[t] += reward
+                allocations[:,t] = alloc
 
-        tail = compute_T(D,N)
+            simulator.random_swap_venues()
 
-    return rewards/mc
+    #print ''
+    return rewards/float(mc), allocations / float(mc)
 
 
 ###################################################
@@ -156,7 +200,7 @@ def KM_iter_optimistic(D,N,simulator,epsilon,delta):
     V = simulator.V_max # nothing done on the maximum allocation for the moment
     allocation = greedyAllocation(T,V) # do the allocation accordingly
     reward = get_reward(allocation,simulator,D,N)
-    return reward
+    return reward, allocation
 
 def KM_optimistic(simulator,T,mc):
 
@@ -165,6 +209,8 @@ def KM_optimistic(simulator,T,mc):
     rewards = np.zeros(T)
 
     for m in range(mc):
+        print "\r(%d/%d) MC runs" % (m+1,mc),
+        sys.stdout.flush()
 
         D = np.zeros([n_venues,simulator.V_max+1])
         N = np.zeros([n_venues,simulator.V_max+1])
@@ -182,6 +228,44 @@ def KM_optimistic(simulator,T,mc):
         rewards[0] = get_reward(alloc,simulator,D,N)
 
         for t in range(1,T):
-            rewards[t] += KM_iter_optimistic(D,N,simulator,epsilon,delta)
+            reward, _ = KM_iter_optimistic(D,N,simulator,epsilon,delta)
+            rewards[t] += reward
 
+    print ''
     return rewards/mc
+
+def KM_optimistic_swap(simulator,T, mc=1, n_swaps=5):
+    TT = np.floor(np.linspace(0,T,n_swaps)).astype(int)
+    n_venues = len(simulator.venues)
+
+    rewards = np.zeros(T)
+    allocations = np.zeros((n_venues,T))
+
+    for m in range(mc):
+
+        D = np.zeros([n_venues,simulator.V_max+1])
+        N = np.zeros([n_venues,simulator.V_max+1])
+
+        # first iteration with a uniform allocation
+        # Do the euclidean division of V by n_venues
+        p = simulator.V_max / n_venues
+        r = simulator.V_max - p * n_venues
+
+        # Allocate uniformly to the different venues
+        arr = np.arange(n_venues)
+        np.random.shuffle(arr)
+        alloc = p * np.ones(n_venues) + (arr < r)
+
+        rewards[0] += get_reward(alloc,simulator,D,N)
+        allocations[:,0] += alloc
+
+        for interval in range(len(TT)-1):
+            for t in range(TT[interval],TT[interval+1]):
+                #print "\r(%d/%d) MC runs | (%d/%d) time step" % (k+1,n_runs,t,T),
+                #sys.stdout.flush()
+                reward, alloc = KM_iter_optimistic(D,N,simulator,epsilon,delta)
+                rewards[t] += reward
+                allocations[:,t] += alloc
+            simulator.random_swap_venues()
+    #print ''
+    return rewards/float(mc), allocations / float(mc)
