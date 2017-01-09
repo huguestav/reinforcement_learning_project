@@ -93,8 +93,40 @@ def update_x(x, V, s, alloc, eta, f, v, d):
     return x
 
 
+def one_exp3_iteration(simulator, gamma, eta, x):
+    (n_venues, V_max) = x.shape
 
-def exp3_allocation(simulator, T, n_runs, eta, gamma):
+    V = V_max
+    v = np.sum(x[:,:V], axis=1)
+    f = np.floor(v)
+    d = v - f
+    m = np.sum(d)
+    m = int(np.round(np.sum(d)))
+    d = (1-gamma)*d + gamma*m/float(n_venues)
+
+    # Sample over the distribution of theorem 2
+    sample = sample_subset(d)
+
+    # Compute the allocation
+    included = np.array([int(i in sample) for i in range(n_venues)])
+    alloc = f + included
+
+    # Play alloc
+    s = np.zeros(n_venues)
+    reward = 0
+    for i in range(n_venues):
+        # Simulate the venue and observe the reward
+        s[i] = simulator.venues[i].draw()
+        reward += min(s[i], alloc[i])
+
+    # Update x according to equation 4
+    x = update_x(x, V, s, alloc, eta, f, v, d)
+
+    return x, alloc, reward
+
+
+
+def exp3_allocation(simulator, T, mc, gamma=0.01):
     """
     eta is the larning rate
     gamma is the threshold
@@ -102,48 +134,46 @@ def exp3_allocation(simulator, T, n_runs, eta, gamma):
     V_max = simulator.V_max
     n_venues = simulator.n_venues
     venues = simulator.venues
+    eta = (V_max * np.log(n_venues)**2 / n_venues * T**(-2))**(1./3)
 
     rewards = np.zeros(T)
-    for k in range(n_runs):
+    for k in range(mc):
         # Initialize
         x = 1. / n_venues * np.ones((n_venues, V_max))
 
         for t in range(T):
-            V = V_max
-            # Compute the parameters
-            v = np.sum(x[:,:V], axis=1)
-            # print v
-            # print x
-            # v = np.sum(x, axis=1)
-            f = np.floor(v)
-            d = v - f
-            m = np.sum(d)
-            # print m
-            m = int(np.round(np.sum(d)))
-            d = (1-gamma)*d + gamma*m/float(n_venues)
-            # Sample over the distribution of theorem 2
-            sample = sample_subset(d)
-            # print "v:", v
-            # print "d:", d
-            # print "m:", m
-            # print "sample:", sample
-            # Compute the allocation
-            included = np.array([int(i in sample) for i in range(n_venues)])
-            alloc = f + included
-
-            # Play alloc
-            s = np.zeros(n_venues)
-            for i in range(n_venues):
-                # Simulate the venue and observe the reward
-                s[i] = simulator.venues[i].draw()
-                rewards[t] += min(s[i], alloc[i])
-            # print "alloc:", alloc
-            # print "s:", s
-            # print ""
-            # Update x according to equation 4
-            x = update_x(x, V, s, alloc, eta, f, v, d)
+            x, alloc, reward = one_exp3_iteration(simulator, gamma, eta, x)
+            rewards[t] += reward
 
     # Calculate the mean reward on the runs and sum the rewards of the venues
-    rewards = rewards / float(n_runs)
+    rewards = rewards / float(mc)
     return rewards
+
+
+def exp3_allocation_change(simulator1, simulator2, T, eta, gamma):
+    """
+    eta is the larning rate
+    gamma is the threshold
+    """
+    V_max = simulator1.V_max
+    n_venues = simulator1.n_venues
+
+
+    rewards = np.zeros(2*T)
+    allocations = np.zeros((n_venues, 2*T))
+    x = 1. / n_venues * np.ones((n_venues, V_max))
+
+    for t in range(T):
+        x, alloc, reward = one_exp3_iteration(simulator1, gamma, eta, x)
+        rewards[t] += reward
+        allocations[:,t] += alloc
+
+    for t in range(T):
+        x, alloc, reward = one_exp3_iteration(simulator2, gamma, eta, x)
+        rewards[T+t] += reward
+        allocations[:,T+t] += alloc
+
+    # Calculate the mean reward on the runs and sum the rewards of the venues
+    return rewards, allocations
+
 
